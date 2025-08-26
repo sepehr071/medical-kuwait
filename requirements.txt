@@ -1,0 +1,21 @@
+# Core Flask
+Flask
+Flask-JWT-Extended
+Flask-CORS
+
+# Database
+pymongo
+
+# Security & Validation
+bcrypt
+marshmallow
+
+# Environment
+python-dotenv
+
+# Development & Testing
+pytest
+pytest-flask
+mongomock
+black
+flake8
