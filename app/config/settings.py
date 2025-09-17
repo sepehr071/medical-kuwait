@@ -17,9 +17,12 @@ class Config:
     # CORS settings
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
     
-    # SMS settings (placeholder)
+    # SMS settings
     SMS_PROVIDER = os.getenv('SMS_PROVIDER', 'placeholder')
-    SMS_API_KEY = os.getenv('SMS_API_KEY', 'placeholder_key')
+    SMS_API_KEY = os.getenv('SMS_API_KEY', 'placeholder_key') # Retain if other SMS services might use it
+    TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+    TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+    TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
     
     # Application settings
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')

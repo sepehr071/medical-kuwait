@@ -10,6 +10,9 @@ pymongo
 bcrypt
 marshmallow
 
+# WhatsApp Integration
+twilio
+
 # Environment
 python-dotenv
 

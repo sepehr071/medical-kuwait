@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Configuration
 BASE_URL = "http://localhost:5000/api"
-TEST_PHONE = "+96551234567"  # Kuwait phone number for testing
+TEST_PHONE = "+96550114480"  # Kuwait phone number for testing
 headers = {"Content-Type": "application/json"}
 
 class Colors:

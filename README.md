@@ -263,9 +263,16 @@ MONGODB_DB_NAME=kuwait_medical_clinic
 # Frontend Integration
 FRONTEND_URL=http://localhost:3000
 
-# SMS Service (Placeholder)
-SMS_PROVIDER=placeholder
+# SMS Service
+# Set SMS_PROVIDER to 'twilio_whatsapp' to enable WhatsApp OTPs via Twilio
+SMS_PROVIDER=twilio_whatsapp
+# Retain if other SMS services might use it
 SMS_API_KEY=placeholder_key
+
+# Twilio WhatsApp Configuration (required if SMS_PROVIDER is 'twilio_whatsapp')
+TWILIO_ACCOUNT_SID=your_actual_twilio_account_sid_here
+TWILIO_AUTH_TOKEN=your_actual_twilio_auth_token_here
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886 # Your Twilio Sandbox or WhatsApp Business number
 ```
 
 ## 🔒 Security Features
@@ -276,18 +283,23 @@ SMS_API_KEY=placeholder_key
 - **Input Sanitization** - Comprehensive validation
 - **CORS Configuration** - Frontend integration
 
-## 📱 SMS Integration
+## 📱 SMS and WhatsApp Integration
 
-The system includes a placeholder SMS service that logs OTP codes to the console for development. To integrate with a real SMS provider:
+The system now supports sending OTP codes via Twilio WhatsApp.
 
-1. **Update SMS service** in `app/services/sms_service.py`
-2. **Add provider credentials** to environment variables
-3. **Configure provider-specific settings**
+**Configuration:**
+1.  **Set `SMS_PROVIDER=twilio_whatsapp`** in your `.env` file.
+2.  **Provide Twilio Credentials** in your `.env` file:
+    *   `TWILIO_ACCOUNT_SID`
+    *   `TWILIO_AUTH_TOKEN`
+    *   `TWILIO_WHATSAPP_FROM` (e.g., `whatsapp:+14155238886` for sandbox)
 
-Supported providers (ready for integration):
-- Twilio
-- AWS SNS
-- Custom REST APIs
+**Fallback:**
+If `SMS_PROVIDER` is not set to `twilio_whatsapp` or if Twilio configuration is incomplete/fails, the system will fall back to a placeholder SMS service that logs OTP codes to the console for development purposes.
+
+Supported messaging channels:
+- Twilio WhatsApp
+- Console Log (Placeholder)
 
 ## 🧪 Testing
 

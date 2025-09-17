@@ -1,16 +1,32 @@
 import logging
 from flask import current_app
+from whatsapp.whatsapp_sender import WhatsAppSender
 
 class SMSService:
-    """SMS service placeholder - can be replaced with actual SMS provider"""
+    """SMS service can be replaced with actual SMS provider, with Twilio WhatsApp now integrated"""
     
     def __init__(self):
         self.provider = current_app.config.get('SMS_PROVIDER', 'placeholder')
-        self.api_key = current_app.config.get('SMS_API_KEY', 'placeholder_key')
-    
+        
+        self.whatsapp_sender = None
+        if self.provider == 'twilio_whatsapp':
+            try:
+                # WhatsAppSender loads its own env vars but we can ensure they are set in main app config too
+                # Alternatively, pass them explicitly if WhatsAppSender constructor accepts them
+                self.whatsapp_sender = WhatsAppSender(
+                    account_sid=current_app.config.get('TWILIO_ACCOUNT_SID'),
+                    auth_token=current_app.config.get('TWILIO_AUTH_TOKEN'),
+                    from_number=current_app.config.get('TWILIO_WHATSAPP_FROM')
+                )
+                current_app.logger.info("WhatsAppSender initialized for Twilio WhatsApp.")
+            except Exception as e:
+                current_app.logger.error(f"Failed to initialize WhatsAppSender: {str(e)}")
+                self.provider = 'placeholder' # Fallback to placeholder if WhatsAppSender fails
+                self.whatsapp_sender = None
+            
     def send_otp(self, phone_number, otp_code, purpose='login'):
         """
-        Send OTP via SMS
+        Send OTP via SMS or WhatsApp
         
         Args:
             phone_number (str): Phone number to send OTP to
@@ -21,26 +37,30 @@ class SMSService:
             bool: True if sent successfully, False otherwise
         """
         try:
-            # Placeholder implementation - just log the OTP
-            message = self._create_message(otp_code, purpose)
+            message_body = self._create_message(otp_code, purpose)
             
-            current_app.logger.info(f"[SMS PLACEHOLDER] Sending OTP to {phone_number}")
-            current_app.logger.info(f"[SMS PLACEHOLDER] Message: {message}")
-            current_app.logger.info(f"[SMS PLACEHOLDER] OTP Code: {otp_code}")
-            
-            # In real implementation, this would be:
-            # if self.provider == 'twilio':
-            #     return self._send_twilio(phone_number, message)
-            # elif self.provider == 'aws_sns':
-            #     return self._send_aws_sns(phone_number, message)
-            # else:
-            #     return self._send_custom(phone_number, message)
-            
-            # For placeholder, always return True
-            return True
-            
+            if self.provider == 'twilio_whatsapp' and self.whatsapp_sender:
+                # The WhatsAppSender module handles E.164 formatting and whatsapp: prefix
+                send_result = self.whatsapp_sender.send_message(
+                    to_number=phone_number,
+                    message=message_body
+                )
+                if send_result['success']:
+                    current_app.logger.info(f"[WhatsApp] OTP sent successfully to {phone_number}. SID: {send_result['message_sid']}")
+                    return True
+                else:
+                    current_app.logger.error(f"[WhatsApp] Failed to send OTP to {phone_number}: {send_result['error']}")
+                    return False
+            else:
+                # Placeholder implementation - just log the OTP
+                current_app.logger.info(f"[SMS PLACEHOLDER] Sending OTP to {phone_number}")
+                current_app.logger.info(f"[SMS PLACEHOLDER] Message: {message_body}")
+                current_app.logger.info(f"[SMS PLACEHOLDER] OTP Code: {otp_code}")
+                # For placeholder, always return True
+                return True
+                
         except Exception as e:
-            current_app.logger.error(f"Failed to send SMS to {phone_number}: {str(e)}")
+            current_app.logger.error(f"Failed to send OTP to {phone_number}: {str(e)}")
             return False
     
     def _create_message(self, otp_code, purpose):
@@ -51,31 +71,3 @@ class SMSService:
             return f"Your Kuwait Medical Clinic phone verification code is: {otp_code}. This code expires in 5 minutes."
         else:
             return f"Your Kuwait Medical Clinic verification code is: {otp_code}. This code expires in 5 minutes."
-    
-    def _send_twilio(self, phone_number, message):
-        """Send SMS via Twilio (placeholder for future implementation)"""
-        # from twilio.rest import Client
-        # client = Client(account_sid, auth_token)
-        # message = client.messages.create(
-        #     body=message,
-        #     from_='+1234567890',  # Your Twilio phone number
-        #     to=phone_number
-        # )
-        # return message.sid is not None
-        pass
-    
-    def _send_aws_sns(self, phone_number, message):
-        """Send SMS via AWS SNS (placeholder for future implementation)"""
-        # import boto3
-        # sns = boto3.client('sns')
-        # response = sns.publish(
-        #     PhoneNumber=phone_number,
-        #     Message=message
-        # )
-        # return response['ResponseMetadata']['HTTPStatusCode'] == 200
-        pass
-    
-    def _send_custom(self, phone_number, message):
-        """Send SMS via custom provider (placeholder for future implementation)"""
-        # Implement custom SMS provider logic here
-        pass
