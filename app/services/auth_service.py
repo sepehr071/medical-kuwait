@@ -10,7 +10,11 @@ class AuthService:
     """Authentication service for OTP and JWT management"""
     
     def __init__(self):
-        self.sms_service = SMSService()
+        try:
+            self.sms_service = SMSService()
+        except Exception as e:
+            current_app.logger.error(f"Failed to initialize SMS service: {str(e)}")
+            self.sms_service = None
     
     def send_otp(self, phone_number, purpose='login'):
         """
@@ -49,6 +53,10 @@ class AuthService:
             otp.save()
             
             # Send SMS
+            if self.sms_service is None:
+                current_app.logger.error("SMS service not available")
+                return False, "SMS service is not configured properly. Please contact support.", None
+            
             sms_sent = self.sms_service.send_otp(normalized_phone, otp_code, purpose)
             
             if sms_sent:
@@ -57,7 +65,7 @@ class AuthService:
                     "expires_in": 300  # 5 minutes
                 }
             else:
-                return False, "Failed to send OTP", None
+                return False, "Failed to send OTP. Please try again or contact support.", None
                 
         except Exception as e:
             current_app.logger.error(f"Error sending OTP: {str(e)}")

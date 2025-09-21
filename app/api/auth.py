@@ -19,28 +19,41 @@ def send_otp():
         "purpose": "login|phone_change"
     }
     """
-    data = request.validated_data
-    phone_number = data['phone_number']
-    purpose = data['purpose']
-    
-    auth_service = AuthService()
-    
-    # For phone_change purpose, we need user context (this would be set by the calling endpoint)
-    if purpose == 'phone_change':
-        # This endpoint should only be called for login purpose
-        # Phone change OTP should be handled by the user profile update endpoint
-        return error_response(
-            "INVALID_PURPOSE", 
-            "Use /api/user/phone endpoint for phone change OTP",
-            status_code=400
-        )
-    
-    success, message, data = auth_service.send_otp(phone_number, purpose)
-    
-    if success:
-        return success_response(data, message)
-    else:
-        return error_response("OTP_SEND_FAILED", message, status_code=400)
+    try:
+        data = request.validated_data
+        phone_number = data['phone_number']
+        purpose = data['purpose']
+        
+        # Log the request for debugging
+        from flask import current_app
+        current_app.logger.info(f"Send OTP request - Phone: {phone_number}, Purpose: {purpose}")
+        
+        # For phone_change purpose, we need user context (this would be set by the calling endpoint)
+        if purpose == 'phone_change':
+            # This endpoint should only be called for login purpose
+            # Phone change OTP should be handled by the user profile update endpoint
+            return error_response(
+                "INVALID_PURPOSE",
+                "Use /api/user/phone endpoint for phone change OTP",
+                status_code=400
+            )
+        
+        auth_service = AuthService()
+        success, message, response_data = auth_service.send_otp(phone_number, purpose)
+        
+        current_app.logger.info(f"Send OTP result - Success: {success}, Message: {message}")
+        
+        if success:
+            return success_response(response_data, message)
+        else:
+            return error_response("OTP_SEND_FAILED", message, status_code=400)
+            
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Send OTP endpoint error: {str(e)}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        return error_response("INTERNAL_ERROR", "An error occurred while processing your request", status_code=500)
 
 @auth_bp.route('/verify-otp', methods=['POST'])
 @validate_json_schema(VerifyOTPSchema)
@@ -74,4 +87,43 @@ def verify_otp():
         else:
             error_code = "OTP_VERIFICATION_FAILED"
         
+
+@auth_bp.route('/debug', methods=['GET'])
+def debug_info():
+    """
+    Debug endpoint to check SMS service configuration
+    
+    GET /api/auth/debug
+    """
+    try:
+        from flask import current_app
+        import os
+        
+        debug_info = {
+            "twilio_config": {
+                "account_sid": "Present" if os.getenv('TWILIO_ACCOUNT_SID') else "Missing",
+                "auth_token": "Present" if os.getenv('TWILIO_AUTH_TOKEN') else "Missing", 
+                "sms_from": os.getenv('TWILIO_SMS_FROM', 'Missing')
+            },
+            "flask_config": {
+                "flask_env": os.getenv('FLASK_ENV', 'development'),
+                "flask_debug": os.getenv('FLASK_DEBUG', 'False'),
+                "flask_port": os.getenv('FLASK_PORT', '5000')
+            }
+        }
+        
+        # Test SMS service initialization
+        try:
+            from app.services.sms_service import SMSService
+            sms_service = SMSService()
+            debug_info["sms_service"] = "Initialized successfully"
+        except Exception as e:
+            debug_info["sms_service"] = f"Failed: {str(e)}"
+        
+        return success_response(debug_info, "Debug information")
+        
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Debug endpoint error: {str(e)}")
+        return error_response("DEBUG_ERROR", f"Debug failed: {str(e)}", status_code=500)
         return error_response(error_code, message, status_code=400)
