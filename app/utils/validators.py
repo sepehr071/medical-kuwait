@@ -1,22 +1,29 @@
 import re
 from marshmallow import Schema, fields, validate, ValidationError
 
-# Kuwait phone number patterns
-KUWAIT_PHONE_PATTERNS = [
-    r'^\+965[56789]\d{7}$',      # +965XXXXXXXX
-    r'^965[56789]\d{7}$',        # 965XXXXXXXX  
-    r'^[56789]\d{7}$'            # 8-digit local
-]
+# Phone number patterns for Kuwait and Germany
+PHONE_PATTERNS = {
+    'kuwait': [
+        r'^\+965[56789]\d{7}$',      # +965XXXXXXXX
+        r'^965[56789]\d{7}$',        # 965XXXXXXXX
+        r'^[56789]\d{7}$'            # 8-digit local
+    ],
+    'germany': [
+        r'^\+49[1-9]\d{8,11}$',      # +49XXXXXXXXX (9-12 digits after +49)
+        r'^49[1-9]\d{8,11}$',        # 49XXXXXXXXX
+        r'^0[1-9]\d{8,10}$'          # 0XXXXXXXXX (German local format)
+    ]
+}
 
-def validate_kuwait_phone(phone: str) -> str:
+def validate_international_phone(phone: str) -> str:
     """
-    Validate and normalize Kuwait phone number
+    Validate and normalize Kuwait or German phone number
     
     Args:
         phone (str): Phone number to validate
         
     Returns:
-        str: Normalized phone number in +965XXXXXXXX format
+        str: Normalized phone number in international format
         
     Raises:
         ValidationError: If phone number is invalid
@@ -27,8 +34,8 @@ def validate_kuwait_phone(phone: str) -> str:
     # Remove spaces and special chars except +
     cleaned = re.sub(r'[^\d+]', '', str(phone))
     
-    # Normalize to +965XXXXXXXX format
-    for pattern in KUWAIT_PHONE_PATTERNS:
+    # Check Kuwait patterns first
+    for pattern in PHONE_PATTERNS['kuwait']:
         if re.match(pattern, cleaned):
             if cleaned.startswith('+965'):
                 return cleaned
@@ -37,17 +44,37 @@ def validate_kuwait_phone(phone: str) -> str:
             else:  # 8-digit local
                 return '+965' + cleaned
     
-    raise ValidationError("Invalid Kuwait phone number format. Must be Kuwait number starting with 5, 6, or 9")
+    # Check German patterns
+    for pattern in PHONE_PATTERNS['germany']:
+        if re.match(pattern, cleaned):
+            if cleaned.startswith('+49'):
+                return cleaned
+            elif cleaned.startswith('49'):
+                return '+' + cleaned
+            elif cleaned.startswith('0'):  # German local format
+                return '+49' + cleaned[1:]  # Remove leading 0 and add +49
+    
+    raise ValidationError("Invalid phone number format. Must be Kuwait (+965) or German (+49) phone number")
 
-# Custom field for Kuwait phone validation
-class KuwaitPhoneField(fields.String):
-    """Custom marshmallow field for Kuwait phone validation"""
+# Keep old function name for backward compatibility
+def validate_kuwait_phone(phone: str) -> str:
+    """Backward compatibility wrapper"""
+    return validate_international_phone(phone)
+
+# Custom field for international phone validation (Kuwait and Germany)
+class InternationalPhoneField(fields.String):
+    """Custom marshmallow field for Kuwait and German phone validation"""
     
     def _deserialize(self, value, attr, data, **kwargs):
         value = super()._deserialize(value, attr, data, **kwargs)
         if value:
-            return validate_kuwait_phone(value)
+            return validate_international_phone(value)
         return value
+
+# Keep old field name for backward compatibility
+class KuwaitPhoneField(InternationalPhoneField):
+    """Backward compatibility wrapper"""
+    pass
 
 # Validation schemas
 class SendOTPSchema(Schema):

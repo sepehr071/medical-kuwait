@@ -10,7 +10,7 @@ pymongo
 bcrypt
 marshmallow
 
-# WhatsApp Integration
+# SMS Integration (Twilio)
 twilio
 
 # Environment

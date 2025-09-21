@@ -253,6 +253,7 @@ Key environment variables in `.env`:
 # Flask Configuration
 FLASK_ENV=development
 FLASK_DEBUG=True
+FLASK_PORT=5000
 SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
 
@@ -260,19 +261,13 @@ JWT_SECRET_KEY=your-jwt-secret
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB_NAME=kuwait_medical_clinic
 
-# Frontend Integration
+# Frontend Integration (CORS)
 FRONTEND_URL=http://localhost:3000
 
-# SMS Service
-# Set SMS_PROVIDER to 'twilio_whatsapp' to enable WhatsApp OTPs via Twilio
-SMS_PROVIDER=twilio_whatsapp
-# Retain if other SMS services might use it
-SMS_API_KEY=placeholder_key
-
-# Twilio WhatsApp Configuration (required if SMS_PROVIDER is 'twilio_whatsapp')
+# SMS Service (Twilio)
 TWILIO_ACCOUNT_SID=your_actual_twilio_account_sid_here
 TWILIO_AUTH_TOKEN=your_actual_twilio_auth_token_here
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886 # Your Twilio Sandbox or WhatsApp Business number
+TWILIO_SMS_FROM=+1234567890 # Your Twilio phone number for SMS
 ```
 
 ## 🔒 Security Features
@@ -283,23 +278,28 @@ TWILIO_WHATSAPP_FROM=whatsapp:+14155238886 # Your Twilio Sandbox or WhatsApp Bus
 - **Input Sanitization** - Comprehensive validation
 - **CORS Configuration** - Frontend integration
 
-## 📱 SMS and WhatsApp Integration
+## 📱 SMS Integration
 
-The system now supports sending OTP codes via Twilio WhatsApp.
+The system sends OTP codes via Twilio SMS service.
 
 **Configuration:**
-1.  **Set `SMS_PROVIDER=twilio_whatsapp`** in your `.env` file.
-2.  **Provide Twilio Credentials** in your `.env` file:
-    *   `TWILIO_ACCOUNT_SID`
-    *   `TWILIO_AUTH_TOKEN`
-    *   `TWILIO_WHATSAPP_FROM` (e.g., `whatsapp:+14155238886` for sandbox)
+1.  **Provide Twilio Credentials** in your `.env` file:
+    *   `TWILIO_ACCOUNT_SID` - Your Twilio Account SID
+    *   `TWILIO_AUTH_TOKEN` - Your Twilio Auth Token
+    *   `TWILIO_SMS_FROM` - Your Twilio phone number (E.164 format, e.g., +1234567890)
 
-**Fallback:**
-If `SMS_PROVIDER` is not set to `twilio_whatsapp` or if Twilio configuration is incomplete/fails, the system will fall back to a placeholder SMS service that logs OTP codes to the console for development purposes.
+**Phone Number Validation:**
+- Automatically validates and formats phone numbers to E.164 format
+- Supports various input formats (with/without country code, spaces, dashes, parentheses)
+- Converts to proper international format for SMS delivery
+
+**Error Handling:**
+- Comprehensive error handling for Twilio API failures
+- Detailed logging for debugging and monitoring
+- Graceful degradation with informative error messages
 
 Supported messaging channels:
-- Twilio WhatsApp
-- Console Log (Placeholder)
+- Twilio SMS
 
 ## 🧪 Testing
 
@@ -337,14 +337,21 @@ For production deployment:
    - Configure reverse proxy (Nginx)
    - Set up SSL certificates
 
-## 📞 Kuwait Phone Number Format
+## 📞 Supported Phone Number Formats
 
-The system validates Kuwait phone numbers in these formats:
+The system validates Kuwait and German phone numbers in these formats:
+
+**Kuwait Numbers:**
 - `+965XXXXXXXX` (international format)
 - `965XXXXXXXX` (country code without +)
 - `8-digit local` (starting with 5, 6, or 9)
 
-All numbers are normalized to `+965XXXXXXXX` format internally.
+**German Numbers:**
+- `+49XXXXXXXXX` (international format, 9-12 digits after +49)
+- `49XXXXXXXXX` (country code without +)
+- `0XXXXXXXXX` (German local format)
+
+All numbers are normalized to international format internally (`+965` or `+49`).
 
 ## 🔧 Troubleshooting
 
